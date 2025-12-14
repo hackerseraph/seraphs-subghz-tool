@@ -16,19 +16,32 @@ A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, 
 - CC1101 SPI module
 - Antenna appropriate for your target frequency
 
-## Wiring
+## Hardware Compatibility
 
-Connect CC1101 to M5StickC Plus:
+This tool is specifically designed for the **M5Stack StickC Plus NRF24&CC1101 2-in-1 RF Module**. 
 
-| CC1101 Pin | M5StickC Plus Pin | GPIO |
-|------------|-------------------|------|
-| GDO0       | G36               | 36   |
-| SCK        | G13               | 13   |
-| MISO       | G14               | 14   |
-| MOSI       | G15               | 15   |
-| CSN        | G5                | 5    |
-| VCC        | 3.3V              | -    |
-| GND        | GND               | -    |
+### Important: M5Stack 2-in-1 Module Support
+
+The M5Stack 2-in-1 module requires special initialization that differs from standard CC1101 breakout boards. This project uses a modified CC1101 driver from [Bruce firmware's fork](https://github.com/bmorcelli/SmartRC-CC1101-Driver-Lib) which includes the `setBeginEndLogic()` method required for proper initialization of the M5Stack module.
+
+**Key differences:**
+- Standard CC1101 libraries (LSatan original) will **hang on Init()** with the M5Stack 2-in-1 module
+- Bruce's fork adds `setBeginEndLogic(true)` which enables proper SPI begin/end logic needed for the StickC Plus shared pin configuration
+- The tool includes a settings menu to toggle between 2-in-1 and standard module types
+
+### Pin Configuration
+
+For M5Stack StickC Plus NRF24/CC1101 2-in-1 Module (as documented in [Bruce firmware wiki](https://github.com/BruceDevices/firmware/wiki/CC1101)):
+
+| CC1101 Pin | M5StickC Plus Pin | GPIO | Notes |
+|------------|-------------------|------|-------|
+| GDO0       | -                 | 25   | -     |
+| CS         | -                 | 26   | Chip Select |
+| MOSI       | Grove SCL         | 32   | Shared with Grove |
+| SCK        | -                 | 0    | -     |
+| MISO       | Grove SDA         | 33   | Shared with Grove |
+| VCC        | 3.3V              | -    | -     |
+| GND        | GND               | -    | -     |
 
 ## Button Controls
 
@@ -156,10 +169,28 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 
 MIT License - Use at your own risk
 
+## Technical Details
+
+### CC1101 Driver
+
+This project uses a modified CC1101 driver from [Bruce firmware](https://github.com/BruceDevices/firmware). The standard ELECHOUSE CC1101 library does not support the M5Stack 2-in-1 module due to differences in SPI initialization requirements.
+
+**Solution discovered by analyzing Bruce firmware source code:**
+1. Bruce uses a [forked version](https://github.com/bmorcelli/SmartRC-CC1101-Driver-Lib) of the ELECHOUSE library
+2. The fork adds `setBeginEndLogic(bool)` method for proper SPI management
+3. For M5StickC Plus, `setBeginEndLogic(true)` must be called before `Init()`
+4. This enables proper SPI begin/end calls needed for the shared pin configuration
+
+Reference: [Bruce firmware rf_utils.cpp](https://github.com/BruceDevices/firmware/blob/main/src/modules/rf/rf_utils.cpp) lines 116-120
+
 ## Credits
 
 Built for M5StickC Plus using:
-- M5StickCPlus library
-- SmartRC-CC1101-Driver-Lib
+- [M5StickCPlus library](https://github.com/m5stack/M5StickC-Plus)
+- [Bruce's CC1101 driver fork](https://github.com/bmorcelli/SmartRC-CC1101-Driver-Lib) - Critical for M5Stack 2-in-1 module support
+
+Special thanks to:
+- [Bruce firmware project](https://github.com/BruceDevices/firmware) for CC1101 2-in-1 module initialization solution
+- Original [ELECHOUSE CC1101 library](https://github.com/LSatan/SmartRC-CC1101-Driver-Lib)
 
 Inspired by projects like Flipper Zero and Bruce, but focused specifically on SubGHz operations.
