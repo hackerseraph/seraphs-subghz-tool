@@ -225,14 +225,14 @@ void MenuSystem::buttonPower() {
 void MenuSystem::drawMainMenu() {
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setTextSize(2);
-    M5.Lcd.setCursor(10, 10);
+    M5.Lcd.setCursor(10, 5);
     M5.Lcd.setTextColor(ORANGE, BLACK);
     M5.Lcd.println("Seraph's");
-    M5.Lcd.setCursor(10, 25);
+    M5.Lcd.setCursor(10, 20);
     M5.Lcd.println("SubGHz Tool");
     
     M5.Lcd.setTextSize(1);
-    int y = 48;
+    int y = 40;
     const char* menuItems[] = {"Scan", "Spectrum", "Listen", "Record", "Replay", "Hacks", "Settings"};
     
     for (int i = 0; i < maxMenuItems; i++) {
@@ -245,7 +245,7 @@ void MenuSystem::drawMainMenu() {
             M5.Lcd.print(" ");
         }
         M5.Lcd.print(menuItems[i]);
-        y += 15;
+        y += 13;
     }
     
     // Show current frequency (lower right)
@@ -556,7 +556,7 @@ void MenuSystem::drawAboutScreen() {
     
     M5.Lcd.setCursor(10, 60);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("Version 0.2.7");
+    M5.Lcd.println("Version 0.2.8");
     
     M5.Lcd.setCursor(10, 75);
     M5.Lcd.setTextColor(WHITE, BLACK);

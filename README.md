@@ -1,6 +1,6 @@
 # M5StickC Plus SubGHz Tool
 
-**Version 0.2.7**
+**Version 0.2.8**
 
 A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals.
 
@@ -168,6 +168,12 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - Try moving closer to signal source
 
 ## Changelog
+
+### v0.2.8 (December 2025)
+**Critical Menu Fix:**
+- **Fixed Settings menu visibility**: Settings menu item was being drawn at y=138, off the bottom of the 135px screen
+- Adjusted menu layout: moved title up and reduced item spacing so all 7 menu items now fit on screen
+- Users can now access Settings and About screens properly
 
 ### v0.2.7 (December 2025)
 **Custom Boot Logo & Hampton Bay Fan Support:**
