@@ -13,6 +13,9 @@ public:
     SubGhzOperations(CC1101Interface* radio, MenuSystem* menu);
     void begin();
     void update();
+    void runTeslaChargePortHack();
+    void runGarageDoorBruteForce();
+    void runHamptonBayFanBruteForce();
     
 private:
     CC1101Interface* cc1101;
@@ -58,6 +61,14 @@ private:
     void displayRSSI(int rssi, int x, int y);
     void displaySignalStrength(int rssi);
     int mapRSSIToBar(int rssi);
+    
+    // Garage door brute force helpers
+    void bruteForceGarageCodes(int bits);
+    void sendGarageSync();
+    void sendGarageBit(int bit);
+    
+    void bruteForceHamptonBay();
+    void sendHamptonBayCommand(int fanId, int command);
 };
 
 #endif

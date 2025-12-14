@@ -1,6 +1,6 @@
 # M5StickC Plus SubGHz Tool
 
-**Version 0.2.2**
+**Version 0.2.7**
 
 A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals.
 
@@ -168,6 +168,22 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - Try moving closer to signal source
 
 ## Changelog
+
+### v0.2.7 (December 2025)
+**Custom Boot Logo & Hampton Bay Fan Support:**
+- **Added custom Orca boot logo**: Displays 240×135 pixel custom image on startup (2 second delay)
+- **Hampton Bay ceiling fan brute force hack**: Menu option 3 now includes Hampton Bay fan control
+  - Transmits on 303.00 MHz, 303.631 MHz, and 303.875 MHz
+  - Supports 16 DIP switch IDs (0x0-0xF)
+  - Four commands per ID: Fan ON, Fan OFF, Light ON, Light OFF
+  - Total 192 command combinations (16 IDs × 4 commands × 3 frequencies)
+  - Real-time progress display with stop button functionality
+  - Protocol 11 compatible (24-bit Manchester encoding)
+- **Technical improvements:**
+  - Large image data compiled as plain C (.c file) for reliable symbol export
+  - On-the-fly RGB888 to RGB565 color conversion for efficient memory usage
+  - Line-by-line rendering to minimize RAM usage during boot
+  - Clean display updates with proper clearing to prevent character overlap
 
 ### v0.2.2 (December 2025)
 **Major Display System Overhaul:**

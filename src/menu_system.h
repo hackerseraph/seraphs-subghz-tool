@@ -5,6 +5,9 @@
 #include <M5StickCPlus.h>
 #include "cc1101_interface.h"
 
+// Forward declaration
+class SubGhzOperations;
+
 enum MenuState {
     MENU_MAIN,
     MENU_SCAN,
@@ -12,6 +15,7 @@ enum MenuState {
     MENU_LISTEN,
     MENU_RECORD,
     MENU_REPLAY,
+    MENU_HACKS,
     MENU_SETTINGS,
     MENU_ABOUT
 };
@@ -31,6 +35,7 @@ public:
     void begin();
     void update();
     void draw();
+    void setOperations(SubGhzOperations* ops);
     
     MenuState getState();
     OperationMode getMode();
@@ -49,6 +54,8 @@ private:
     int maxMenuItems;
     ModuleType moduleType;
     int settingsSelection;
+    int hacksSelection;
+    SubGhzOperations* operations;
     
     // Frequency selection
     int freqIndex;
@@ -67,6 +74,7 @@ private:
     void drawListenScreen();
     void drawRecordScreen();
     void drawReplayScreen();
+    void drawHacksScreen();
     void drawSettingsScreen();
     void drawAboutScreen();
     

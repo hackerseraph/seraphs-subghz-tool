@@ -150,3 +150,12 @@ void CC1101Interface::replaySignal(int* timings, int numSamples) {
     pinMode(CC1101_GDO0, INPUT);
     setRxMode();
 }
+
+void CC1101Interface::setIdleMode() {
+    ELECHOUSE_cc1101.SpiStrobe(0x36);  // SIDLE - Exit RX/TX, turn off frequency synthesizer
+}
+
+void CC1101Interface::setModulation(int mode) {
+    // Set modulation: 0=2-FSK, 1=GFSK, 2=ASK/OOK, 3=4-FSK, 4=MSK
+    ELECHOUSE_cc1101.setModulation(mode);
+}

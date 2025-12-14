@@ -29,27 +29,29 @@ CC1101Interface cc1101;
 MenuSystem menu;
 SubGhzOperations operations(&cc1101, &menu);
 
+// Include orca image data
+#include "orca_m5.h"
+
 // Splash screen
 void showSplashScreen() {
-    M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setTextSize(2);
-    M5.Lcd.setTextColor(ORANGE, BLACK);
-    M5.Lcd.setCursor(20, 20);
-    M5.Lcd.println("Seraph's");
-    M5.Lcd.setCursor(15, 40);
-    M5.Lcd.println("SubGHz Tool");
+    // Draw orca image (240x135, 24-bit RGB)
+    // Convert 24-bit RGB to RGB565 on the fly
+    uint16_t* lineBuffer = (uint16_t*)malloc(240 * sizeof(uint16_t));
     
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setTextColor(WHITE, BLACK);
-    M5.Lcd.setCursor(30, 60);
-    M5.Lcd.println("M5StickC Plus");
-    M5.Lcd.setCursor(30, 75);
-    M5.Lcd.println("+ CC1101");
+    for (int y = 0; y < 135; y++) {
+        for (int x = 0; x < 240; x++) {
+            int idx = (y * 240 + x) * 3;
+            uint8_t r = image_data_orca_m5[idx];
+            uint8_t g = image_data_orca_m5[idx + 1];
+            uint8_t b = image_data_orca_m5[idx + 2];
+            
+            // Convert to RGB565
+            lineBuffer[x] = ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
+        }
+        M5.Lcd.pushImage(0, y, 240, 1, lineBuffer);
+    }
     
-    M5.Lcd.setTextColor(GREEN, BLACK);
-    M5.Lcd.setCursor(30, 100);
-    M5.Lcd.println("Initializing...");
-    
+    free(lineBuffer);
     delay(2000);
 }
 
@@ -102,6 +104,9 @@ void setup() {
     
     // Initialize operations
     operations.begin();
+    
+    // Connect operations to menu for hacks
+    menu.setOperations(&operations);
     
     // Seed random for dummy data
     randomSeed(analogRead(0));

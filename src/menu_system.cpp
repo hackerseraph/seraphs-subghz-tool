@@ -1,12 +1,15 @@
 #include "menu_system.h"
+#include "subghz_operations.h"
 
 MenuSystem::MenuSystem() {
     currentState = MENU_MAIN;
     currentMode = MODE_IDLE;
     menuSelection = 0;
-    maxMenuItems = 6;  // Added Settings to menu
+    maxMenuItems = 7;  // Scan, Spectrum, Listen, Record, Replay, Hacks, Settings
     moduleType = MODULE_2IN1;  // Default to 2-in-1 module
     settingsSelection = 0;
+    hacksSelection = 0;
+    operations = nullptr;
     freqIndex = 1; // Default to 433MHz
     
     frequencies[0] = 315.00;
@@ -54,6 +57,9 @@ void MenuSystem::draw() {
         case MENU_REPLAY:
             drawReplayScreen();
             break;
+        case MENU_HACKS:
+            drawHacksScreen();
+            break;
         case MENU_SETTINGS:
             drawSettingsScreen();
             break;
@@ -93,6 +99,10 @@ bool MenuSystem::needsRedraw() {
 
 void MenuSystem::clearRedrawFlag() {
     redrawNeeded = false;
+}
+
+void MenuSystem::setOperations(SubGhzOperations* ops) {
+    operations = ops;
 }
 
 void MenuSystem::handleButtons() {
@@ -135,10 +145,31 @@ void MenuSystem::buttonA() {
                 currentMode = MODE_REPLAYING;
                 break;
             case 5:
+                currentState = MENU_HACKS;
+                currentMode = MODE_IDLE;
+                hacksSelection = 0;
+                break;
+            case 6:
                 currentState = MENU_SETTINGS;
                 currentMode = MODE_IDLE;
                 settingsSelection = 0;
                 break;
+        }
+    } else if (currentState == MENU_HACKS) {
+        if (operations != nullptr) {
+            if (hacksSelection == 0) {
+                // Tesla Charge Port - trigger the hack
+                operations->runTeslaChargePortHack();
+                redrawNeeded = true;
+            } else if (hacksSelection == 1) {
+                // Garage Door Brute Force
+                operations->runGarageDoorBruteForce();
+                redrawNeeded = true;
+            } else if (hacksSelection == 2) {
+                // Hampton Bay Fan Brute Force
+                operations->runHamptonBayFanBruteForce();
+                redrawNeeded = true;
+            }
         }
     } else if (currentState == MENU_SETTINGS) {
         if (settingsSelection == 0) {
@@ -156,6 +187,10 @@ void MenuSystem::buttonB() {
     redrawNeeded = true;  // Button pressed, need redraw
     if (currentState == MENU_ABOUT) {
         currentState = MENU_SETTINGS;
+    } else if (currentState == MENU_HACKS) {
+        // Go back to main menu
+        currentState = MENU_MAIN;
+        currentMode = MODE_IDLE;
     } else if (currentState == MENU_SETTINGS) {
         currentState = MENU_MAIN;
         currentMode = MODE_IDLE;
@@ -173,6 +208,9 @@ void MenuSystem::buttonPower() {
     if (currentState == MENU_MAIN) {
         redrawNeeded = true;  // Menu navigation needs redraw
         menuSelection = (menuSelection - 1 + maxMenuItems) % maxMenuItems;
+    } else if (currentState == MENU_HACKS) {
+        redrawNeeded = true;  // Hacks navigation needs redraw
+        hacksSelection = (hacksSelection - 1 + 3) % 3;  // Navigate hacks menu (3 items)
     } else if (currentState == MENU_SETTINGS) {
         redrawNeeded = true;  // Settings navigation needs redraw
         // Toggle between Module Type and About
@@ -195,7 +233,7 @@ void MenuSystem::drawMainMenu() {
     
     M5.Lcd.setTextSize(1);
     int y = 48;
-    const char* menuItems[] = {"Scan", "Spectrum", "Listen", "Record", "Replay", "Settings"};
+    const char* menuItems[] = {"Scan", "Spectrum", "Listen", "Record", "Replay", "Hacks", "Settings"};
     
     for (int i = 0; i < maxMenuItems; i++) {
         M5.Lcd.setCursor(10, y);
@@ -416,6 +454,44 @@ void MenuSystem::drawReplayScreen() {
     }
 }
 
+void MenuSystem::drawHacksScreen() {
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setCursor(10, 10);
+    M5.Lcd.setTextColor(RED, BLACK);
+    M5.Lcd.println("HACKS");
+    
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 40);
+    M5.Lcd.setTextColor(YELLOW, BLACK);
+    M5.Lcd.println("WARNING: Use responsibly!");
+    
+    M5.Lcd.setCursor(10, 60);
+    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.println("Select hack:");
+    
+    // Hack menu items
+    int y = 75;
+    const char* hackItems[] = {"Tesla Charge Port", "Garage Brute Force", "Hampton Bay Fan"};
+    
+    for (int i = 0; i < 3; i++) {
+        M5.Lcd.setCursor(10, y);
+        if (i == hacksSelection) {
+            M5.Lcd.setTextColor(BLACK, GREEN);
+            M5.Lcd.print(">");
+        } else {
+            M5.Lcd.setTextColor(WHITE, BLACK);
+            M5.Lcd.print(" ");
+        }
+        M5.Lcd.print(hackItems[i]);
+        y += 12;
+    }
+    
+    M5.Lcd.setCursor(10, 120);
+    M5.Lcd.setTextColor(YELLOW, BLACK);
+    M5.Lcd.println("A: Run  B: Back");
+}
+
 void MenuSystem::drawSettingsScreen() {
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(10, 10);
@@ -480,7 +556,7 @@ void MenuSystem::drawAboutScreen() {
     
     M5.Lcd.setCursor(10, 60);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("Version 0.2.2");
+    M5.Lcd.println("Version 0.2.7");
     
     M5.Lcd.setCursor(10, 75);
     M5.Lcd.setTextColor(WHITE, BLACK);

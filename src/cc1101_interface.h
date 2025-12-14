@@ -49,10 +49,15 @@ public:
     // Transmitter
     void setTxMode();
     void transmit(byte* data, int len);
+    void setIdleMode();
+    void setModulation(int mode);  // 0=2-FSK, 1=GFSK, 2=ASK/OOK, 3=4-FSK, 4=MSK
     
     // Signal recording
     bool recordSignal(int* timings, int maxSamples);
     void replaySignal(int* timings, int numSamples);
+    
+    // Pin access for direct manipulation
+    int getGDO0Pin() { return CC1101_GDO0; }
     
 private:
     float currentFrequency;
