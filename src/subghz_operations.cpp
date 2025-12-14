@@ -4,11 +4,16 @@
 SubGhzOperations::SubGhzOperations(CC1101Interface* radio, MenuSystem* menu) {
     cc1101 = radio;
     menuSystem = menu;
+    lastMode = MODE_IDLE;
     lastRSSI = -100;
+    lastDisplayedRSSI = -999;  // Force first draw
+    scanCounter = 0;
     lastScanUpdate = 0;
     lastSpectrumUpdate = 0;
     lastListenUpdate = 0;
     signalCount = 0;
+    forceListenDraw = true;
+    lastListenFreq = 0.0;
     recordedSampleCount = 0;
     hasRecording = false;
     isTransmitting = false;
@@ -20,10 +25,39 @@ void SubGhzOperations::begin() {
     for (int i = 0; i < SPECTRUM_POINTS; i++) {
         spectrumData[i] = -100;
     }
+    
+    // Initialize RSSI history
+    for (int i = 0; i < 120; i++) {
+        rssiHistory[i] = -100;
+    }
+    historyIndex = 0;
 }
 
 void SubGhzOperations::update() {
     OperationMode mode = menuSystem->getMode();
+    
+    // Reset display state when mode changes
+    if (mode != lastMode) {
+        if (mode == MODE_SCANNING) {
+            lastDisplayedRSSI = -999;  // Force redraw
+            scanCounter = 0;
+            historyIndex = 0;
+            for (int i = 0; i < 120; i++) {
+                rssiHistory[i] = -100;
+            }
+        } else if (mode == MODE_LISTENING) {
+            signalCount = 0;  // Reset signal counter
+            forceListenDraw = true;  // Force initial draw
+            lastListenUpdate = 0;  // Force immediate update
+            lastListenFreq = 0.0;  // Reset frequency to force detection
+        } else if (mode == MODE_SPECTRUM) {
+            // Reset spectrum state
+            for (int i = 0; i < SPECTRUM_POINTS; i++) {
+                spectrumData[i] = -100;
+            }
+        }
+        lastMode = mode;
+    }
     
     switch (mode) {
         case MODE_SCANNING:
@@ -54,15 +88,23 @@ void SubGhzOperations::updateScan() {
         int rssi = cc1101->getRSSI();
         lastRSSI = rssi;
         
-        // Display RSSI
-        M5.Lcd.fillRect(10, 60, 220, 40, BLACK);
-        M5.Lcd.setCursor(10, 60);
-        M5.Lcd.setTextSize(2);
-        M5.Lcd.setTextColor(GREEN, BLACK);
-        M5.Lcd.printf("RSSI: %d dBm", rssi);
+        // Add to history buffer
+        rssiHistory[historyIndex] = rssi;
+        historyIndex = (historyIndex + 1) % 120;
         
-        // Display signal strength bar
-        displaySignalStrength(rssi);
+        // Update RSSI display only if value changed significantly (±2 dBm)
+        // Draw below frequency text (y=32) and above waveform (y=52)
+        if (abs(rssi - lastDisplayedRSSI) >= 2) {
+            M5.Lcd.fillRect(10, 42, 220, 8, BLACK);  // Clear the text area
+            M5.Lcd.setCursor(10, 42);
+            M5.Lcd.setTextSize(1);
+            M5.Lcd.setTextColor(GREEN, BLACK);
+            M5.Lcd.printf("RSSI: %d dBm", rssi);
+            lastDisplayedRSSI = rssi;
+        }
+        
+        // Draw only the newest waveform segment (incremental drawing)
+        drawRSSIWaveform();
         
         lastScanUpdate = millis();
     }
@@ -86,73 +128,99 @@ void SubGhzOperations::updateSpectrum() {
 }
 
 void SubGhzOperations::drawSpectrum() {
-    // Clear spectrum area
-    M5.Lcd.fillRect(0, 35, 240, 70, BLACK);
-    
-    // Find min and max for scaling
-    int minRSSI = 0;
-    int maxRSSI = -100;
-    for (int i = 0; i < SPECTRUM_POINTS; i++) {
-        if (spectrumData[i] > maxRSSI) maxRSSI = spectrumData[i];
-        if (spectrumData[i] < minRSSI) minRSSI = spectrumData[i];
-    }
+    // Clear spectrum graph area only (below text labels, above controls)
+    // Text ends at line 45 (+ ~8 pixels = 53), controls start at 120
+    M5.Lcd.fillRect(0, 56, 240, 60, BLACK);
     
     // Draw spectrum bars
     int barWidth = 240 / SPECTRUM_POINTS;
     if (barWidth < 1) barWidth = 1;
     
     for (int i = 0; i < SPECTRUM_POINTS; i++) {
-        int barHeight = map(spectrumData[i], -100, -30, 0, 60);
+        int barHeight = map(spectrumData[i], -100, -30, 0, 56);
         if (barHeight < 0) barHeight = 0;
-        if (barHeight > 60) barHeight = 60;
+        if (barHeight > 56) barHeight = 56;
         
         uint16_t color = GREEN;
         if (spectrumData[i] > -50) color = RED;
         else if (spectrumData[i] > -70) color = YELLOW;
         
-        M5.Lcd.fillRect(i * barWidth, 105 - barHeight, barWidth - 1, barHeight, color);
+        M5.Lcd.fillRect(i * barWidth, 116 - barHeight, barWidth - 1, barHeight, color);
     }
-    
-    // Display center frequency
-    M5.Lcd.setCursor(10, 35);
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setTextColor(WHITE, BLACK);
-    M5.Lcd.printf("Center: %.2f MHz", menuSystem->getSelectedFrequency());
-    
-    M5.Lcd.setCursor(10, 50);
-    M5.Lcd.printf("Range: +/- 5 MHz");
 }
 
 void SubGhzOperations::updateListen() {
     if (millis() - lastListenUpdate > 50) {
+        static int lastDisplayedListenRSSI = -200;  // Force first draw
+        static int lastSignalCount = -1;  // Force first draw
+        static bool lastSignalState = false;  // Track signal transitions
+        
+        // Reset static variables when forceListenDraw is set (mode entry or freq change)
+        if (forceListenDraw) {
+            lastDisplayedListenRSSI = -200;
+            lastSignalCount = -1;
+            lastSignalState = false;
+        }
+        
+        // Check if frequency changed
+        float currentFreq = menuSystem->getSelectedFrequency();
+        if (currentFreq != lastListenFreq) {
+            forceListenDraw = true;
+            lastListenFreq = currentFreq;
+            lastDisplayedListenRSSI = -200;  // Force RSSI redraw
+        }
+        
         // Set frequency and RX mode
-        cc1101->setFrequency(menuSystem->getSelectedFrequency());
+        cc1101->setFrequency(currentFreq);
         cc1101->setRxMode();
+        delay(10);  // Allow CC1101 to stabilize
         int rssi = cc1101->getRSSI();
         
-        // Display RSSI
-        M5.Lcd.fillRect(10, 60, 220, 50, BLACK);
-        M5.Lcd.setCursor(10, 60);
-        M5.Lcd.setTextSize(1);
-        M5.Lcd.setTextColor(WHITE, BLACK);
-        M5.Lcd.printf("RSSI: %d dBm", rssi);
+        // Update RSSI display if changed by ±2 dBm or forced draw
+        if (forceListenDraw || abs(rssi - lastDisplayedListenRSSI) >= 2) {
+            M5.Lcd.fillRect(10, 55, 220, 10, BLACK);
+            M5.Lcd.setCursor(10, 55);
+            M5.Lcd.setTextSize(1);
+            M5.Lcd.setTextColor(WHITE, BLACK);
+            M5.Lcd.printf("RSSI: %d dBm", rssi);
+            lastDisplayedListenRSSI = rssi;
+            
+            displaySignalStrength(rssi);
+            
+            // If forced draw, also show signal counter
+            if (forceListenDraw) {
+                M5.Lcd.fillRect(10, 68, 220, 10, BLACK);
+                M5.Lcd.setCursor(10, 68);
+                M5.Lcd.setTextColor(GREEN, BLACK);
+                M5.Lcd.printf("Signals: %d", signalCount);
+                lastSignalCount = signalCount;
+            }
+            
+            forceListenDraw = false;
+        }
         
-        // Check for real signal detection
-        if (cc1101->signalDetected()) {
+        // Check for real signal detection - only count on transition (not continuously)
+        bool currentSignalState = cc1101->signalDetected();
+        if (currentSignalState && !lastSignalState) {
+            // Signal just appeared (rising edge)
             signalCount++;
-            M5.Lcd.setCursor(10, 75);
-            M5.Lcd.setTextColor(GREEN, BLACK);
-            M5.Lcd.printf("Signals: %d", signalCount);
+            if (signalCount != lastSignalCount) {
+                M5.Lcd.fillRect(10, 68, 220, 10, BLACK);
+                M5.Lcd.setCursor(10, 68);
+                M5.Lcd.setTextColor(GREEN, BLACK);
+                M5.Lcd.printf("Signals: %d", signalCount);
+                lastSignalCount = signalCount;
+            }
             
             // Try to receive data
             int len = cc1101->receiveData(rxBuffer, sizeof(rxBuffer));
             if (len > 0) {
-                M5.Lcd.setCursor(10, 90);
+                M5.Lcd.fillRect(10, 81, 220, 10, BLACK);
+                M5.Lcd.setCursor(10, 81);
                 M5.Lcd.printf("RX: %d bytes", len);
             }
         }
-        
-        displaySignalStrength(rssi);
+        lastSignalState = currentSignalState;
         
         lastListenUpdate = millis();
     }
@@ -258,15 +326,66 @@ void SubGhzOperations::updateReplay() {
     }
 }
 
+void SubGhzOperations::drawRSSIWaveform() {
+    // Scrolling chart approach - draw complete history every time
+    // but only update every few samples to balance smoothness and performance
+    static int lastDrawIndex = -1;
+    
+    // Update every 2 samples (200ms) for smooth but not too flashy
+    if (historyIndex % 2 != 0) return;
+    if (lastDrawIndex == historyIndex) return;
+    lastDrawIndex = historyIndex;
+    
+    // Chart area: below freq text (ends ~y=48), above controls (start y=110)
+    int chartTop = 52;
+    int chartBottom = 108;
+    int chartHeight = chartBottom - chartTop;
+    
+    // Clear the waveform area
+    M5.Lcd.fillRect(5, chartTop, 230, chartHeight, BLACK);
+    
+    // Draw grid lines for reference
+    M5.Lcd.drawFastHLine(5, chartTop + chartHeight/2, 230, DARKGREY);  // Center line
+    
+    // Draw the complete waveform history
+    // Most recent data on the RIGHT, scrolling left (like a chart recorder)
+    for (int x = 0; x < 230; x += 2) {
+        // Map screen position to history buffer (right side = most recent)
+        int sampleIdx = x / 2;
+        if (sampleIdx >= 115) continue;
+        
+        // Reverse: rightmost pixel = newest data
+        int idx = (historyIndex - (114 - sampleIdx) + 120) % 120;
+        int y = map(rssiHistory[idx], -100, -30, chartBottom, chartTop);
+        y = constrain(y, chartTop, chartBottom);
+        
+        // Color coding
+        uint16_t color = GREEN;
+        if (rssiHistory[idx] > -50) color = RED;
+        else if (rssiHistory[idx] > -70) color = YELLOW;
+        
+        // Draw vertical line for this sample
+        M5.Lcd.drawPixel(5 + x, y, color);
+        
+        // Connect to previous sample for continuity
+        if (x > 0 && sampleIdx < 115) {
+            int prevIdx = (historyIndex - (114 - (sampleIdx - 1)) + 120) % 120;
+            int prevY = map(rssiHistory[prevIdx], -100, -30, chartBottom, chartTop);
+            prevY = constrain(prevY, chartTop, chartBottom);
+            M5.Lcd.drawLine(5 + x - 2, prevY, 5 + x, y, color);
+        }
+    }
+}
+
 void SubGhzOperations::displaySignalStrength(int rssi) {
-    // Draw signal strength bars
+    // Draw signal strength bars below text, above controls (controls at y=110)
     int barCount = mapRSSIToBar(rssi);
     int barX = 10;
-    int barY = 90;
+    int barY = 93;
     int barWidth = 10;
     int barSpacing = 3;
     
-    M5.Lcd.fillRect(barX, barY, 240 - 20, 20, BLACK);
+    M5.Lcd.fillRect(barX, barY, 240 - 20, 15, BLACK);
     
     for (int i = 0; i < 10; i++) {
         uint16_t color = (i < barCount) ? GREEN : DARKGREY;

@@ -17,11 +17,17 @@ public:
 private:
     CC1101Interface* cc1101;
     MenuSystem* menuSystem;
+    OperationMode lastMode;
     
     // Scan mode
     void updateScan();
     int lastRSSI;
+    int lastDisplayedRSSI;
+    int scanCounter;
+    int rssiHistory[120];  // History buffer for waveform
+    int historyIndex;
     unsigned long lastScanUpdate;
+    void drawRSSIWaveform();
     
     // Spectrum analyzer
     void updateSpectrum();
@@ -34,6 +40,8 @@ private:
     byte rxBuffer[64];
     unsigned long lastListenUpdate;
     int signalCount;
+    bool forceListenDraw;
+    float lastListenFreq;
     
     // Recording
     void updateRecord();

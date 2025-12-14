@@ -33,7 +33,7 @@ SubGhzOperations operations(&cc1101, &menu);
 void showSplashScreen() {
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setTextSize(2);
-    M5.Lcd.setTextColor(CYAN, BLACK);
+    M5.Lcd.setTextColor(ORANGE, BLACK);
     M5.Lcd.setCursor(20, 20);
     M5.Lcd.println("Seraph's");
     M5.Lcd.setCursor(15, 40);
@@ -116,20 +116,25 @@ void loop() {
     // Update menu system (handles button inputs)
     menu.update();
     
-    // Update operations based on current mode
-    operations.update();
-    
-    // Draw menu/screen only when state changes or periodically
-    static unsigned long lastDraw = 0;
+    // Draw menu/screen only when needed
     static MenuState lastState = MENU_MAIN;
     MenuState currentState = menu.getState();
     
-    // Redraw if state changed or every 200ms
-    if (currentState != lastState || millis() - lastDraw > 200) {
-        menu.draw();
-        lastDraw = millis();
+    bool shouldDraw = false;
+    
+    // Only redraw if state changed or menu explicitly flagged redraw needed
+    if (currentState != lastState || menu.needsRedraw()) {
+        shouldDraw = true;
         lastState = currentState;
     }
+    
+    if (shouldDraw) {
+        menu.draw();
+        menu.clearRedrawFlag();
+    }
+    
+    // Update operations based on current mode (AFTER menu draw so operations draw on top)
+    operations.update();
     
     delay(20);
 }

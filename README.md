@@ -1,5 +1,7 @@
 # M5StickC Plus SubGHz Tool
 
+**Version 0.2.2**
+
 A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals.
 
 ## Features
@@ -164,6 +166,37 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - Signal must be present for at least 100ms
 - Signal must have clear HIGH/LOW transitions
 - Try moving closer to signal source
+
+## Changelog
+
+### v0.2.2 (December 2025)
+**Major Display System Overhaul:**
+- **Fixed critical display race condition**: Corrected draw order in main loop - menu.draw() now executes before operations.update(), ensuring static UI elements render before dynamic content
+- **Resolved 433MHz RSSI display issue**: RSSI text now properly appears at all frequencies in Listen mode
+- **Fixed mode switching contamination**: Implemented early return pattern with screenValid flags to prevent UI elements from bleeding between modes (Scan/Spectrum/Listen/Record/Replay)
+- **Eliminated screen flashing**: Removed periodic 200ms redraws, now only redraws on state changes or explicit needsRedraw flag
+- **Fixed text overlap in Scan mode**: Adjusted vertical spacing between frequency text (y=32), RSSI display (y=42), and waveform visualization (y=52)
+- **Corrected Record/Replay mode draw logic**: Fixed inverted draw conditions that prevented screens from loading when switching modes multiple times
+- **Improved CC1101 stability**: Added 10ms stabilization delay after setRxMode() and frequency tracking reset on mode entry
+
+**Technical improvements:**
+- All operational mode draw functions now use consistent lastDrawnState pattern
+- Static screenValid variables properly invalidate when leaving modes
+- Frequency changes update text without clearing dynamic content
+- Clean mode transitions with no UI remnants
+
+### v0.2.1 (December 2025)
+**Bug Fixes:**
+- Fixed excessive screen flashing on home screen by implementing smart redraw logic
+- Fixed menu remnants showing at bottom when switching to operational modes
+- Static menus now only redraw on button press instead of every 200ms
+- Active modes maintain real-time updates while idle screens stay stable
+
+### v0.01 (Initial Release)
+- Initial implementation with all 5 operational modes
+- M5Stack 2-in-1 module support via Bruce's CC1101 driver
+- Settings menu with module type selection
+- About screen with version information
 
 ## License
 

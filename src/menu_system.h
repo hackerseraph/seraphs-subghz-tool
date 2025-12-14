@@ -39,6 +39,8 @@ public:
     int getSelectedFreqIndex();
     float getSelectedFrequency();
     ModuleType getModuleType();
+    bool needsRedraw();
+    void clearRedrawFlag();
     
 private:
     MenuState currentState;
@@ -73,6 +75,7 @@ private:
     bool buttonAPressed;
     bool buttonBPressed;
     bool buttonPowerPressed;
+    bool redrawNeeded;
 };
 
 #endif

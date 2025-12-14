@@ -18,6 +18,7 @@ MenuSystem::MenuSystem() {
     buttonAPressed = false;
     buttonBPressed = false;
     buttonPowerPressed = false;
+    redrawNeeded = true;  // Initial draw needed
 }
 
 void MenuSystem::begin() {
@@ -86,6 +87,14 @@ ModuleType MenuSystem::getModuleType() {
     return moduleType;
 }
 
+bool MenuSystem::needsRedraw() {
+    return redrawNeeded;
+}
+
+void MenuSystem::clearRedrawFlag() {
+    redrawNeeded = false;
+}
+
 void MenuSystem::handleButtons() {
     if (M5.BtnA.wasPressed()) {
         buttonA();
@@ -102,6 +111,7 @@ void MenuSystem::handleButtons() {
 
 void MenuSystem::buttonA() {
     // Select/Enter button
+    redrawNeeded = true;  // Button pressed, need redraw
     if (currentState == MENU_MAIN) {
         switch (menuSelection) {
             case 0:
@@ -143,6 +153,7 @@ void MenuSystem::buttonA() {
 
 void MenuSystem::buttonB() {
     // Back/Cancel button
+    redrawNeeded = true;  // Button pressed, need redraw
     if (currentState == MENU_ABOUT) {
         currentState = MENU_SETTINGS;
     } else if (currentState == MENU_SETTINGS) {
@@ -160,12 +171,15 @@ void MenuSystem::buttonB() {
 void MenuSystem::buttonPower() {
     // Power button - navigate menu up or change frequency
     if (currentState == MENU_MAIN) {
+        redrawNeeded = true;  // Menu navigation needs redraw
         menuSelection = (menuSelection - 1 + maxMenuItems) % maxMenuItems;
     } else if (currentState == MENU_SETTINGS) {
+        redrawNeeded = true;  // Settings navigation needs redraw
         // Toggle between Module Type and About
         settingsSelection = (settingsSelection + 1) % 2;
     } else if (currentState != MENU_ABOUT) {
-        // In other screens, cycle frequency
+        // In operational screens, just cycle frequency (no full redraw needed)
+        // Operations handle their own display updates
         freqIndex = (freqIndex + 1) % 4;
     }
 }
@@ -174,7 +188,7 @@ void MenuSystem::drawMainMenu() {
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setTextSize(2);
     M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(CYAN, BLACK);
+    M5.Lcd.setTextColor(ORANGE, BLACK);
     M5.Lcd.println("Seraph's");
     M5.Lcd.setCursor(10, 25);
     M5.Lcd.println("SubGHz Tool");
@@ -196,59 +210,157 @@ void MenuSystem::drawMainMenu() {
         y += 15;
     }
     
-    // Show current frequency
-    M5.Lcd.setCursor(10, 115);
+    // Show current frequency (lower right)
+    M5.Lcd.setCursor(135, 120);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.printf("Freq: %.2f MHz", frequencies[freqIndex]);
+    M5.Lcd.printf("%.2fMHz", frequencies[freqIndex]);
 }
 
 void MenuSystem::drawScanScreen() {
-    M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(CYAN, BLACK);
-    M5.Lcd.setTextSize(2);
-    M5.Lcd.println("SCANNING");
+    // Only draw static elements - waveform is drawn by drawRSSIWaveform()
+    static MenuState lastDrawnState = MENU_ABOUT;
+    static int lastFreqIndex = -1;
+    static bool screenValid = false;
     
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(10, 40);
-    M5.Lcd.setTextColor(WHITE, BLACK);
-    M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
+    // Only execute if we're actually in this mode
+    if (currentState != MENU_SCAN) {
+        screenValid = false;
+        return;
+    }
     
-    M5.Lcd.setCursor(10, 110);
-    M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("B: Back  PWR: Freq");
+    // Redraw if we just entered this screen or frequency changed
+    if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
+        M5.Lcd.fillScreen(BLACK);
+        M5.Lcd.setCursor(10, 10);
+        M5.Lcd.setTextColor(ORANGE, BLACK);
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.println("SCANNING");
+        
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setCursor(10, 32);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
+        
+        M5.Lcd.setCursor(10, 110);
+        M5.Lcd.setTextColor(YELLOW, BLACK);
+        M5.Lcd.println("B: Back  PWR: Freq");
+        
+        lastDrawnState = currentState;
+        lastFreqIndex = freqIndex;
+        screenValid = true;
+    }
 }
 
 void MenuSystem::drawSpectrumScreen() {
-    M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(CYAN, BLACK);
-    M5.Lcd.setTextSize(2);
-    M5.Lcd.println("SPECTRUM");
+    // Only draw static elements - spectrum bars are drawn by updateSpectrum()
+    static MenuState lastDrawnState = MENU_ABOUT;
+    static int lastFreqIndex = -1;
+    static bool screenValid = false;
     
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(10, 110);
-    M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("B: Back  PWR: Freq");
+    // Only execute if we're actually in this mode
+    if (currentState != MENU_SPECTRUM) {
+        screenValid = false;
+        return;
+    }
+    
+    // Redraw if we just entered this screen or frequency changed
+    if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
+        M5.Lcd.fillScreen(BLACK);
+        M5.Lcd.setCursor(10, 10);
+        M5.Lcd.setTextColor(ORANGE, BLACK);
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.println("SPECTRUM");
+        
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setCursor(10, 35);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.printf("Center: %.2fMHz", frequencies[freqIndex]);
+        
+        float startFreq = frequencies[freqIndex] - 5.0;
+        float endFreq = frequencies[freqIndex] + 5.0;
+        M5.Lcd.setCursor(10, 45);
+        M5.Lcd.setTextColor(DARKGREY, BLACK);
+        M5.Lcd.printf("%.2f - %.2fMHz", startFreq, endFreq);
+        
+        M5.Lcd.setCursor(10, 120);
+        M5.Lcd.setTextColor(YELLOW, BLACK);
+        M5.Lcd.println("B: Back  PWR: Freq");
+        
+        lastDrawnState = currentState;
+        lastFreqIndex = freqIndex;
+        screenValid = true;
+    }
 }
 
 void MenuSystem::drawListenScreen() {
-    M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(CYAN, BLACK);
-    M5.Lcd.setTextSize(2);
-    M5.Lcd.println("LISTENING");
+    // Only draw static elements - RSSI/signals updated by updateListen()
+    static MenuState lastDrawnState = MENU_ABOUT;
+    static int lastFreqIndex = -1;
+    static bool screenValid = false;
     
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(10, 40);
-    M5.Lcd.setTextColor(WHITE, BLACK);
-    M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
+    // Only execute if we're actually in this mode
+    if (currentState != MENU_LISTEN) {
+        screenValid = false;
+        return;
+    }
     
-    M5.Lcd.setCursor(10, 110);
-    M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("A: Record B: Back");
+    // Full redraw only when entering this screen
+    if (!screenValid || currentState != lastDrawnState) {
+        M5.Lcd.fillScreen(BLACK);
+        M5.Lcd.setCursor(10, 10);
+        M5.Lcd.setTextColor(ORANGE, BLACK);
+        M5.Lcd.setTextSize(2);
+        M5.Lcd.println("LISTENING");
+        
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setCursor(10, 40);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
+        
+        // Draw placeholder signal bars (will be updated by updateListen)
+        int barX = 10;
+        int barY = 93;
+        int barWidth = 10;
+        int barSpacing = 3;
+        for (int i = 0; i < 10; i++) {
+            M5.Lcd.fillRect(barX + (i * (barWidth + barSpacing)), barY, barWidth, 15, DARKGREY);
+        }
+        
+        M5.Lcd.setCursor(10, 110);
+        M5.Lcd.setTextColor(YELLOW, BLACK);
+        M5.Lcd.println("B: Back  PWR: Freq");
+        
+        lastDrawnState = currentState;
+        lastFreqIndex = freqIndex;
+        screenValid = true;
+    } 
+    // Update frequency display without clearing screen
+    else if (freqIndex != lastFreqIndex) {
+        M5.Lcd.fillRect(10, 40, 220, 10, BLACK);
+        M5.Lcd.setCursor(10, 40);
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
+        lastFreqIndex = freqIndex;
+    }
 }
 
 void MenuSystem::drawRecordScreen() {
+    static MenuState lastDrawnState = MENU_ABOUT;
+    static int lastFreqIndex = -1;
+    static bool screenValid = false;
+    
+    // Only execute if we're actually in this mode
+    if (currentState != MENU_RECORD) {
+        screenValid = false;
+        return;
+    }
+    
+    // Full redraw only when entering this screen or frequency changed
+    if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
+        M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(RED, BLACK);
+    M5.Lcd.setTextColor(ORANGE, BLACK);
     M5.Lcd.setTextSize(2);
     M5.Lcd.println("RECORDING");
     
@@ -260,14 +372,32 @@ void MenuSystem::drawRecordScreen() {
     M5.Lcd.setCursor(10, 60);
     M5.Lcd.println("Waiting for signal...");
     
-    M5.Lcd.setCursor(10, 110);
-    M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("B: Cancel");
+        M5.Lcd.setCursor(10, 110);
+        M5.Lcd.setTextColor(YELLOW, BLACK);
+        M5.Lcd.println("B: Cancel");
+        
+        lastDrawnState = currentState;
+        lastFreqIndex = freqIndex;
+        screenValid = true;
+    }
 }
 
 void MenuSystem::drawReplayScreen() {
+    static MenuState lastDrawnState = MENU_ABOUT;
+    static int lastFreqIndex = -1;
+    static bool screenValid = false;
+    
+    // Only execute if we're actually in this mode
+    if (currentState != MENU_REPLAY) {
+        screenValid = false;
+        return;
+    }
+    
+    // Full redraw only when entering this screen or frequency changed
+    if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
+        M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(GREEN, BLACK);
+    M5.Lcd.setTextColor(ORANGE, BLACK);
     M5.Lcd.setTextSize(2);
     M5.Lcd.println("REPLAY");
     
@@ -276,15 +406,20 @@ void MenuSystem::drawReplayScreen() {
     M5.Lcd.setTextColor(WHITE, BLACK);
     M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
     
-    M5.Lcd.setCursor(10, 110);
-    M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("A: TX  B: Back");
+        M5.Lcd.setCursor(10, 110);
+        M5.Lcd.setTextColor(YELLOW, BLACK);
+        M5.Lcd.println("A: TX  B: Back");
+        
+        lastDrawnState = currentState;
+        lastFreqIndex = freqIndex;
+        screenValid = true;
+    }
 }
 
 void MenuSystem::drawSettingsScreen() {
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(CYAN, BLACK);
+    M5.Lcd.setTextColor(ORANGE, BLACK);
     M5.Lcd.setTextSize(2);
     M5.Lcd.println("SETTINGS");
     
@@ -334,7 +469,7 @@ void MenuSystem::drawSettingsScreen() {
 void MenuSystem::drawAboutScreen() {
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(CYAN, BLACK);
+    M5.Lcd.setTextColor(ORANGE, BLACK);
     M5.Lcd.setTextSize(2);
     M5.Lcd.println("ABOUT");
     
@@ -345,7 +480,7 @@ void MenuSystem::drawAboutScreen() {
     
     M5.Lcd.setCursor(10, 60);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("Version 0.01");
+    M5.Lcd.println("Version 0.2.2");
     
     M5.Lcd.setCursor(10, 75);
     M5.Lcd.setTextColor(WHITE, BLACK);
