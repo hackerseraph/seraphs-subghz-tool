@@ -16,6 +16,7 @@ public:
     void runTeslaChargePortHack();
     void runGarageDoorBruteForce();
     void runHamptonBayFanBruteForce();
+    void runTVBGone();
     
 private:
     CC1101Interface* cc1101;

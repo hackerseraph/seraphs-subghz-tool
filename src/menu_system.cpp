@@ -169,6 +169,10 @@ void MenuSystem::buttonA() {
                 // Hampton Bay Fan Brute Force
                 operations->runHamptonBayFanBruteForce();
                 redrawNeeded = true;
+            } else if (hacksSelection == 3) {
+                // TV-B-Gone
+                operations->runTVBGone();
+                redrawNeeded = true;
             }
         }
     } else if (currentState == MENU_SETTINGS) {
@@ -210,7 +214,7 @@ void MenuSystem::buttonPower() {
         menuSelection = (menuSelection - 1 + maxMenuItems) % maxMenuItems;
     } else if (currentState == MENU_HACKS) {
         redrawNeeded = true;  // Hacks navigation needs redraw
-        hacksSelection = (hacksSelection - 1 + 3) % 3;  // Navigate hacks menu (3 items)
+        hacksSelection = (hacksSelection - 1 + 4) % 4;  // Navigate hacks menu (4 items)
     } else if (currentState == MENU_SETTINGS) {
         redrawNeeded = true;  // Settings navigation needs redraw
         // Toggle between Module Type and About
@@ -472,9 +476,9 @@ void MenuSystem::drawHacksScreen() {
     
     // Hack menu items
     int y = 75;
-    const char* hackItems[] = {"Tesla Charge Port", "Garage Brute Force", "Hampton Bay Fan"};
+    const char* hackItems[] = {"Tesla Charge Port", "Garage Brute Force", "Hampton Bay Fan", "TV-B-Gone"};
     
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
         M5.Lcd.setCursor(10, y);
         if (i == hacksSelection) {
             M5.Lcd.setTextColor(BLACK, GREEN);
@@ -556,7 +560,7 @@ void MenuSystem::drawAboutScreen() {
     
     M5.Lcd.setCursor(10, 60);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("Version 0.2.8");
+    M5.Lcd.println("Version 0.2.9");
     
     M5.Lcd.setCursor(10, 75);
     M5.Lcd.setTextColor(WHITE, BLACK);

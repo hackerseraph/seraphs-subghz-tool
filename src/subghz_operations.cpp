@@ -1,5 +1,10 @@
 #include "subghz_operations.h"
+#include "WORLD_IR_CODES.h"
 #include <M5StickCPlus.h>
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+
+#define IR_PIN 9
 
 SubGhzOperations::SubGhzOperations(CC1101Interface* radio, MenuSystem* menu) {
     cc1101 = radio;
@@ -495,6 +500,9 @@ void SubGhzOperations::runTeslaChargePortHack() {
         }
         if (M5.BtnB.wasPressed()) {
             // Go back to hacks menu
+            M5.Lcd.fillScreen(BLACK);
+            M5.Lcd.setTextSize(1);
+            menuSystem->draw();
             return;
         }
         delay(20);
@@ -651,6 +659,9 @@ void SubGhzOperations::bruteForceGarageCodes(int bits) {
     while (true) {
         M5.update();
         if (M5.BtnB.wasPressed()) {
+            M5.Lcd.fillScreen(BLACK);
+            M5.Lcd.setTextSize(1);
+            menuSystem->draw();
             return;
         }
         delay(20);
@@ -842,6 +853,9 @@ void SubGhzOperations::bruteForceHamptonBay() {
     while (true) {
         M5.update();
         if (M5.BtnB.wasPressed()) {
+            M5.Lcd.fillScreen(BLACK);
+            M5.Lcd.setTextSize(1);
+            menuSystem->draw();
             break;
         }
         delay(10);
@@ -904,4 +918,119 @@ void SubGhzOperations::sendHamptonBayCommand(int fanId, int command) {
             delay(10);
         }
     }
+}
+
+// Helper functions for TV-B-Gone
+#define NUM_ELEM(x) (sizeof(x) / sizeof(*(x)))
+extern const IrCode *const NApowerCodes[];
+uint8_t num_NAcodes = NUM_ELEM(NApowerCodes);
+
+uint8_t bitsleft_r = 0;
+uint8_t bits_r = 0;
+uint8_t code_ptr;
+volatile const IrCode *powerCode;
+
+uint8_t read_bits(uint8_t count) {
+    uint8_t i;
+    uint8_t tmp = 0;
+    for (i = 0; i < count; i++) {
+        if (bitsleft_r == 0) {
+            bits_r = powerCode->codes[code_ptr++];
+            bitsleft_r = 8;
+        }
+        bitsleft_r--;
+        tmp |= (((bits_r >> (bitsleft_r)) & 1) << (count - 1 - i));
+    }
+    return tmp;
+}
+
+void SubGhzOperations::runTVBGone() {
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextSize(2);
+    M5.Lcd.setCursor(10, 10);
+    M5.Lcd.setTextColor(ORANGE, BLACK);
+    M5.Lcd.println("TV-B-Gone");
+    
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 40);
+    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.printf("Sending %d codes", num_NAcodes);
+    M5.Lcd.setCursor(10, 52);
+    M5.Lcd.println("Point at TV...");
+    
+    M5.Lcd.setCursor(10, 120);
+    M5.Lcd.setTextColor(RED, BLACK);
+    M5.Lcd.println("B: Stop");
+    
+    // Initialize IR sender
+    IRsend irsend(IR_PIN);
+    irsend.begin();
+    
+    uint16_t rawData[300];
+    bool stopped = false;
+    
+    M5.Lcd.setCursor(10, 75);
+    M5.Lcd.setTextColor(YELLOW, BLACK);
+    M5.Lcd.printf("Progress: 0/%d", num_NAcodes);
+    
+    // Send all North America power codes
+    for (uint8_t i = 0; i < num_NAcodes && !stopped; i++) {
+        M5.update();
+        if (M5.BtnB.isPressed()) {
+            stopped = true;
+            break;
+        }
+        
+        powerCode = NApowerCodes[i];
+        
+        const uint8_t freq = powerCode->timer_val;
+        const uint8_t numpairs = powerCode->numpairs;
+        const uint8_t bitcompression = powerCode->bitcompression;
+        
+        // Decode the compressed code
+        code_ptr = 0;
+        bitsleft_r = 0;
+        
+        for (uint8_t k = 0; k < numpairs; k++) {
+            uint16_t ti = (read_bits(bitcompression)) * 2;
+            uint16_t offtime = powerCode->times[ti];
+            uint16_t ontime = powerCode->times[ti + 1];
+            
+            rawData[k * 2] = offtime * 10;
+            rawData[(k * 2) + 1] = ontime * 10;
+        }
+        
+        // Send the code
+        irsend.sendRaw(rawData, (numpairs * 2), freq);
+        
+        // Update display every 10 codes
+        if (i % 10 == 0 || i == num_NAcodes - 1) {
+            M5.Lcd.fillRect(10, 75, 220, 12, BLACK);
+            M5.Lcd.setCursor(10, 75);
+            M5.Lcd.setTextColor(YELLOW, BLACK);
+            M5.Lcd.printf("Progress: %d/%d", i + 1, num_NAcodes);
+        }
+        
+        delay(205); // Delay between codes (from Bruce)
+    }
+    
+    // Turn off IR LED (M5StickC Plus IR LED is active LOW, so HIGH turns it OFF)
+    digitalWrite(IR_PIN, HIGH);
+    
+    M5.Lcd.fillRect(10, 90, 220, 12, BLACK);
+    M5.Lcd.setCursor(10, 90);
+    if (stopped) {
+        M5.Lcd.setTextColor(RED, BLACK);
+        M5.Lcd.println("Stopped!");
+    } else {
+        M5.Lcd.setTextColor(GREEN, BLACK);
+        M5.Lcd.println("Complete!");
+    }
+    
+    delay(2000);
+    
+    // Reset screen state and force menu redraw
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextSize(1);
+    menuSystem->draw();
 }

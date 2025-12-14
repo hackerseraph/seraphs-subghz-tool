@@ -1,6 +1,6 @@
 # M5StickC Plus SubGHz Tool
 
-**Version 0.2.8**
+**Version 0.2.9**
 
 A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals.
 
@@ -56,6 +56,21 @@ For M5Stack StickC Plus NRF24/CC1101 2-in-1 Module (as documented in [Bruce firm
 - **Button A**: Action (Record in Listen mode, Transmit in Replay mode)
 - **Button B**: Back to main menu
 - **Power Button**: Cycle through frequencies (315, 433.92, 868, 915 MHz)
+
+## Hacks Menu
+
+### TV-B-Gone
+Broadcasts hundreds of TV power codes to turn off most TVs. Uses the M5StickC Plus 1.1's built-in IR LED (GPIO 9) with the IRremoteESP8266 library and WORLD_IR_CODES database from Bruce firmware.
+
+- Press **A** to start transmission
+- Press **B** to stop early
+- Progress updates every 10 codes
+- Supports hundreds of TV brands (NA region codes)
+
+### Other Hacks
+- **Tesla Charge Port**: Open Tesla charge ports
+- **Garage Brute**: Brute force 8-bit garage door codes
+- **Hampton Bay Fan**: Send Hampton Bay fan commands
 
 ## Frequency Support
 
@@ -174,6 +189,21 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - **Fixed Settings menu visibility**: Settings menu item was being drawn at y=138, off the bottom of the 135px screen
 - Adjusted menu layout: moved title up and reduced item spacing so all 7 menu items now fit on screen
 - Users can now access Settings and About screens properly
+
+### v0.2.9 (December 2025)
+**TV-B-Gone Implementation:**
+- **TV-B-Gone hack**: Added full TV-B-Gone implementation to Hacks menu using IRremoteESP8266 library with hundreds of TV power codes from Bruce firmware's WORLD_IR_CODES database
+- Uses M5StickC Plus 1.1's built-in IR LED on GPIO 9
+- Supports hundreds of TV brands with NA region codes
+- Progress display updates every 10 codes during transmission
+- Press A to start transmission, B to stop early
+- Proper IR LED cleanup (active-LOW configuration: digitalWrite HIGH turns LED OFF)
+
+**Technical Details:**
+- Integrated IRremoteESP8266 library v2.8.6 for professional IR transmission
+- Copied WORLD_IR_CODES.h from Bruce firmware with compressed IR code database
+- IR code decompression using Bruce's read_bits() helper function
+- Fixed IR LED stuck-on issue by using correct polarity (HIGH = OFF for active-LOW LED)
 
 ### v0.2.7 (December 2025)
 **Custom Boot Logo & Hampton Bay Fan Support:**
