@@ -1,14 +1,19 @@
 #include "menu_system.h"
 #include "subghz_operations.h"
+#include "games.h"
+
+// Global games instance
+Games games;
 
 MenuSystem::MenuSystem() {
     currentState = MENU_MAIN;
     currentMode = MODE_IDLE;
     menuSelection = 0;
-    maxMenuItems = 7;  // Scan, Spectrum, Listen, Record, Replay, Hacks, Settings
+    maxMenuItems = 8;  // Scan, Spectrum, Listen, Record, Replay, Hacks, Games, Settings
     moduleType = MODULE_2IN1;  // Default to 2-in-1 module
     settingsSelection = 0;
     hacksSelection = 0;
+    gamesSelection = 0;
     operations = nullptr;
     freqIndex = 1; // Default to 433MHz
     
@@ -59,6 +64,9 @@ void MenuSystem::draw() {
             break;
         case MENU_HACKS:
             drawHacksScreen();
+            break;
+        case MENU_GAMES:
+            drawGamesScreen();
             break;
         case MENU_SETTINGS:
             drawSettingsScreen();
@@ -150,6 +158,11 @@ void MenuSystem::buttonA() {
                 hacksSelection = 0;
                 break;
             case 6:
+                currentState = MENU_GAMES;
+                currentMode = MODE_IDLE;
+                gamesSelection = 0;
+                break;
+            case 7:
                 currentState = MENU_SETTINGS;
                 currentMode = MODE_IDLE;
                 settingsSelection = 0;
@@ -175,6 +188,21 @@ void MenuSystem::buttonA() {
                 redrawNeeded = true;
             }
         }
+    } else if (currentState == MENU_GAMES) {
+        games.setMenuSystem(this);
+        if (gamesSelection == 0) {
+            // Dino Jump
+            games.runDinoJump();
+            redrawNeeded = true;
+        } else if (gamesSelection == 1) {
+            // Arkanoid
+            games.runArkanoid();
+            redrawNeeded = true;
+        } else if (gamesSelection == 2) {
+            // Space Invaders
+            games.runSpaceInvaders();
+            redrawNeeded = true;
+        }
     } else if (currentState == MENU_SETTINGS) {
         if (settingsSelection == 0) {
             // Toggle module type
@@ -192,6 +220,10 @@ void MenuSystem::buttonB() {
     if (currentState == MENU_ABOUT) {
         currentState = MENU_SETTINGS;
     } else if (currentState == MENU_HACKS) {
+        // Go back to main menu
+        currentState = MENU_MAIN;
+        currentMode = MODE_IDLE;
+    } else if (currentState == MENU_GAMES) {
         // Go back to main menu
         currentState = MENU_MAIN;
         currentMode = MODE_IDLE;
@@ -215,6 +247,9 @@ void MenuSystem::buttonPower() {
     } else if (currentState == MENU_HACKS) {
         redrawNeeded = true;  // Hacks navigation needs redraw
         hacksSelection = (hacksSelection - 1 + 4) % 4;  // Navigate hacks menu (4 items)
+    } else if (currentState == MENU_GAMES) {
+        redrawNeeded = true;  // Games navigation needs redraw
+        gamesSelection = (gamesSelection - 1 + 3) % 3;  // Navigate games menu (3 items)
     } else if (currentState == MENU_SETTINGS) {
         redrawNeeded = true;  // Settings navigation needs redraw
         // Toggle between Module Type and About
@@ -228,16 +263,13 @@ void MenuSystem::buttonPower() {
 
 void MenuSystem::drawMainMenu() {
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setTextSize(2);
+    M5.Lcd.setTextSize(1);
     M5.Lcd.setCursor(10, 5);
     M5.Lcd.setTextColor(ORANGE, BLACK);
-    M5.Lcd.println("Seraph's");
-    M5.Lcd.setCursor(10, 20);
-    M5.Lcd.println("SubGHz Tool");
+    M5.Lcd.println("Seraph's SubGHz Tool");
     
-    M5.Lcd.setTextSize(1);
-    int y = 40;
-    const char* menuItems[] = {"Scan", "Spectrum", "Listen", "Record", "Replay", "Hacks", "Settings"};
+    int y = 20;
+    const char* menuItems[] = {"Scan", "Spectrum", "Listen", "Record", "Replay", "Hacks", "Games", "Settings"};
     
     for (int i = 0; i < maxMenuItems; i++) {
         M5.Lcd.setCursor(10, y);
@@ -273,13 +305,12 @@ void MenuSystem::drawScanScreen() {
     // Redraw if we just entered this screen or frequency changed
     if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
         M5.Lcd.fillScreen(BLACK);
-        M5.Lcd.setCursor(10, 10);
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setCursor(10, 5);
         M5.Lcd.setTextColor(ORANGE, BLACK);
-        M5.Lcd.setTextSize(2);
         M5.Lcd.println("SCANNING");
         
-        M5.Lcd.setTextSize(1);
-        M5.Lcd.setCursor(10, 32);
+        M5.Lcd.setCursor(10, 20);
         M5.Lcd.setTextColor(WHITE, BLACK);
         M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
         
@@ -308,9 +339,9 @@ void MenuSystem::drawSpectrumScreen() {
     // Redraw if we just entered this screen or frequency changed
     if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
         M5.Lcd.fillScreen(BLACK);
-        M5.Lcd.setCursor(10, 10);
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setCursor(10, 5);
         M5.Lcd.setTextColor(ORANGE, BLACK);
-        M5.Lcd.setTextSize(2);
         M5.Lcd.println("SPECTRUM");
         
         M5.Lcd.setTextSize(1);
@@ -349,13 +380,12 @@ void MenuSystem::drawListenScreen() {
     // Full redraw only when entering this screen
     if (!screenValid || currentState != lastDrawnState) {
         M5.Lcd.fillScreen(BLACK);
-        M5.Lcd.setCursor(10, 10);
+        M5.Lcd.setTextSize(1);
+        M5.Lcd.setCursor(10, 5);
         M5.Lcd.setTextColor(ORANGE, BLACK);
-        M5.Lcd.setTextSize(2);
         M5.Lcd.println("LISTENING");
         
-        M5.Lcd.setTextSize(1);
-        M5.Lcd.setCursor(10, 40);
+        M5.Lcd.setCursor(10, 20);
         M5.Lcd.setTextColor(WHITE, BLACK);
         M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
         
@@ -378,8 +408,8 @@ void MenuSystem::drawListenScreen() {
     } 
     // Update frequency display without clearing screen
     else if (freqIndex != lastFreqIndex) {
-        M5.Lcd.fillRect(10, 40, 220, 10, BLACK);
-        M5.Lcd.setCursor(10, 40);
+        M5.Lcd.fillRect(10, 20, 220, 10, BLACK);
+        M5.Lcd.setCursor(10, 20);
         M5.Lcd.setTextSize(1);
         M5.Lcd.setTextColor(WHITE, BLACK);
         M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
@@ -401,17 +431,16 @@ void MenuSystem::drawRecordScreen() {
     // Full redraw only when entering this screen or frequency changed
     if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
         M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(10, 10);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 5);
     M5.Lcd.setTextColor(ORANGE, BLACK);
-    M5.Lcd.setTextSize(2);
     M5.Lcd.println("RECORDING");
     
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(10, 40);
+    M5.Lcd.setCursor(10, 20);
     M5.Lcd.setTextColor(WHITE, BLACK);
     M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
     
-    M5.Lcd.setCursor(10, 60);
+    M5.Lcd.setCursor(10, 35);
     M5.Lcd.println("Waiting for signal...");
     
         M5.Lcd.setCursor(10, 110);
@@ -438,13 +467,12 @@ void MenuSystem::drawReplayScreen() {
     // Full redraw only when entering this screen or frequency changed
     if (!screenValid || currentState != lastDrawnState || freqIndex != lastFreqIndex) {
         M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(10, 10);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 5);
     M5.Lcd.setTextColor(ORANGE, BLACK);
-    M5.Lcd.setTextSize(2);
     M5.Lcd.println("REPLAY");
     
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(10, 40);
+    M5.Lcd.setCursor(10, 20);
     M5.Lcd.setTextColor(WHITE, BLACK);
     M5.Lcd.printf("Freq: %.2fMHz", frequencies[freqIndex]);
     
@@ -460,23 +488,18 @@ void MenuSystem::drawReplayScreen() {
 
 void MenuSystem::drawHacksScreen() {
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setTextSize(2);
-    M5.Lcd.setCursor(10, 10);
-    M5.Lcd.setTextColor(RED, BLACK);
-    M5.Lcd.println("HACKS");
-    
     M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(10, 40);
-    M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("WARNING: Use responsibly!");
+    M5.Lcd.setCursor(10, 5);
+    M5.Lcd.setTextColor(RED, BLACK);
+    M5.Lcd.println("HACKS - Use responsibly!");
     
-    M5.Lcd.setCursor(10, 60);
+    M5.Lcd.setCursor(10, 20);
     M5.Lcd.setTextColor(WHITE, BLACK);
     M5.Lcd.println("Select hack:");
     
     // Hack menu items
-    int y = 75;
-    const char* hackItems[] = {"Tesla Charge Port", "Garage Brute Force", "Hampton Bay Fan", "TV-B-Gone"};
+    int y = 35;
+    const char* hackItems[] = {"Tesla Charge Port", "Garage Door BF", "Hampton Bay Fan", "TV-B-Gone"};
     
     for (int i = 0; i < 4; i++) {
         M5.Lcd.setCursor(10, y);
@@ -496,11 +519,44 @@ void MenuSystem::drawHacksScreen() {
     M5.Lcd.println("A: Run  B: Back");
 }
 
+void MenuSystem::drawGamesScreen() {
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 5);
+    M5.Lcd.setTextColor(CYAN, BLACK);
+    M5.Lcd.println("GAMES - Classic Retro");
+    
+    M5.Lcd.setCursor(10, 20);
+    M5.Lcd.setTextColor(WHITE, BLACK);
+    M5.Lcd.println("Select game:");
+    
+    // Game menu items
+    int y = 35;
+    const char* gameItems[] = {"Dino Jump", "Arkanoid", "Space Invaders"};
+    
+    for (int i = 0; i < 3; i++) {
+        M5.Lcd.setCursor(10, y);
+        if (i == gamesSelection) {
+            M5.Lcd.setTextColor(BLACK, GREEN);
+            M5.Lcd.print(">");
+        } else {
+            M5.Lcd.setTextColor(WHITE, BLACK);
+            M5.Lcd.print(" ");
+        }
+        M5.Lcd.print(gameItems[i]);
+        y += 12;
+    }
+    
+    M5.Lcd.setCursor(10, 120);
+    M5.Lcd.setTextColor(YELLOW, BLACK);
+    M5.Lcd.println("A: Play  PWR: Nav  B: Back");
+}
+
 void MenuSystem::drawSettingsScreen() {
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(10, 10);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 5);
     M5.Lcd.setTextColor(ORANGE, BLACK);
-    M5.Lcd.setTextSize(2);
     M5.Lcd.println("SETTINGS");
     
     M5.Lcd.setTextSize(1);
@@ -548,21 +604,20 @@ void MenuSystem::drawSettingsScreen() {
 
 void MenuSystem::drawAboutScreen() {
     M5.Lcd.fillScreen(BLACK);
-    M5.Lcd.setCursor(10, 10);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 5);
     M5.Lcd.setTextColor(ORANGE, BLACK);
-    M5.Lcd.setTextSize(2);
     M5.Lcd.println("ABOUT");
     
-    M5.Lcd.setTextSize(1);
-    M5.Lcd.setCursor(10, 40);
+    M5.Lcd.setCursor(10, 25);
     M5.Lcd.setTextColor(GREEN, BLACK);
     M5.Lcd.println("Seraph's SubGHz Tool");
     
-    M5.Lcd.setCursor(10, 60);
+    M5.Lcd.setCursor(10, 40);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("Version 0.3.1");
+    M5.Lcd.println("Version 0.3.2");
     
-    M5.Lcd.setCursor(10, 75);
+    M5.Lcd.setCursor(10, 55);
     M5.Lcd.setTextColor(WHITE, BLACK);
     M5.Lcd.println("Created for Dad");
     

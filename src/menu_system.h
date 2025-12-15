@@ -16,6 +16,7 @@ enum MenuState {
     MENU_RECORD,
     MENU_REPLAY,
     MENU_HACKS,
+    MENU_GAMES,
     MENU_SETTINGS,
     MENU_ABOUT
 };
@@ -55,6 +56,7 @@ private:
     ModuleType moduleType;
     int settingsSelection;
     int hacksSelection;
+    int gamesSelection;
     SubGhzOperations* operations;
     
     // Frequency selection
@@ -75,6 +77,7 @@ private:
     void drawRecordScreen();
     void drawReplayScreen();
     void drawHacksScreen();
+    void drawGamesScreen();
     void drawSettingsScreen();
     void drawAboutScreen();
     

@@ -60,6 +60,9 @@ void setup() {
     M5.begin();
     M5.Lcd.setRotation(3);
     
+    // Initialize IMU (accelerometer/gyroscope)
+    M5.Imu.Init();
+    
     // Initialize Serial for debugging
     Serial.begin(115200);
     delay(500);

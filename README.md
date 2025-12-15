@@ -1,16 +1,22 @@
 # M5StickC Plus SubGHz Tool
 
-**Version 0.3.1**
+**Version 0.3.2**
 
-A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals.
+A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals. Now includes classic arcade games!
 
 ## Features
 
+### SubGHz Operations
 - **Scan Mode**: Monitor RSSI on selected frequency with signal strength visualization
 - **Spectrum Analyzer**: View frequency spectrum (±5 MHz around center frequency)
 - **Listen Mode**: Receive and decode signals in real-time
 - **Record Mode**: Capture signal timings for later replay
 - **Replay Mode**: Retransmit recorded signals
+
+### Built-in Games
+- **Dino Jump**: Chrome-style dinosaur jumping game (Button A to jump)
+- **Arkanoid**: Brick-breaking paddle game (Tilt to move paddle)
+- **Space Invaders**: Classic space shooter (Tilt to move, Button A to shoot)
 
 ## Hardware Requirements
 
@@ -248,6 +254,27 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - Static screenValid variables properly invalidate when leaving modes
 - Frequency changes update text without clearing dynamic content
 - Clean mode transitions with no UI remnants
+
+### v0.3.2 (December 2025)
+**New Features:**
+- **Games Menu**: Added classic arcade games for entertainment
+  - **Dino Jump**: Chrome-style dinosaur runner with jumping mechanics
+  - **Arkanoid**: Brick-breaking paddle game with accelerometer tilt controls
+  - **Space Invaders**: Classic space shooter with tilt movement and shooting
+- **IMU Support**: Properly initialized MPU6886 accelerometer for tilt-based game controls
+- **Improved UI**: Compacted all menu headers to single-line format to avoid case obscuring bottom pixels
+
+**Game Features:**
+- Dino Jump: T-Rex sprite design, progressive difficulty, score tracking
+- Arkanoid: 32 destructible bricks, paddle physics, wall bouncing
+- Space Invaders: 33 aliens in formation, player shooting, collision detection
+- All games: Smooth 30-50 FPS, responsive controls, proper exit back to menu
+
+**Technical:**
+- Total games code: ~4KB (from 501KB to 502KB flash usage)
+- Added M5.Imu.Init() to startup sequence
+- Accelerometer tilt controls use Y-axis for left/right movement
+- Button A works for jumping and shooting actions
 
 ### v0.2.1 (December 2025)
 **Bug Fixes:**
