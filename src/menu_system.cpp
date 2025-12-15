@@ -560,7 +560,7 @@ void MenuSystem::drawAboutScreen() {
     
     M5.Lcd.setCursor(10, 60);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("Version 0.2.9");
+    M5.Lcd.println("Version 0.2.10");
     
     M5.Lcd.setCursor(10, 75);
     M5.Lcd.setTextColor(WHITE, BLACK);

@@ -591,21 +591,27 @@ void SubGhzOperations::bruteForceGarageCodes(int bits) {
     cc1101->setTxMode();
     
     for (int code = 0; code < maxCodes && !stopped; code++) {
-        // Send preamble and sync
-        sendGarageSync();
-        
-        // Send the code bits (MSB first)
-        for (int bit = bits - 1; bit >= 0; bit--) {
-            if (code & (1 << bit)) {
-                sendGarageBit(1);  // HIGH bit
-            } else {
-                sendGarageBit(0);  // LOW bit
+        // Send each code 3 times (most garage receivers require repetition)
+        for (int rep = 0; rep < 3; rep++) {
+            // Send preamble and sync
+            sendGarageSync();
+            
+            // Send the code bits (MSB first)
+            for (int bit = bits - 1; bit >= 0; bit--) {
+                if (code & (1 << bit)) {
+                    sendGarageBit(1);  // HIGH bit
+                } else {
+                    sendGarageBit(0);  // LOW bit
+                }
             }
+            
+            // End pulse
+            digitalWrite(cc1101->getGDO0Pin(), LOW);
+            delayMicroseconds(500);
+            
+            // Delay between repetitions of same code
+            delayMicroseconds(10000);  // 10ms
         }
-        
-        // End pulse
-        digitalWrite(cc1101->getGDO0Pin(), LOW);
-        delayMicroseconds(500);
         
         codesSent++;
         
@@ -628,8 +634,8 @@ void SubGhzOperations::bruteForceGarageCodes(int bits) {
             }
         }
         
-        // Small delay between codes (some receivers need this)
-        delayMicroseconds(2000);
+        // Delay before next code (allow receiver to process)
+        delayMicroseconds(20000);  // 20ms between different codes
     }
     
     cc1101->setIdleMode();

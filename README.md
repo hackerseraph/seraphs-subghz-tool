@@ -1,6 +1,6 @@
 # M5StickC Plus SubGHz Tool
 
-**Version 0.2.9**
+**Version 0.2.10**
 
 A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals.
 
@@ -183,6 +183,18 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - Try moving closer to signal source
 
 ## Changelog
+
+### v0.2.10 (December 2025)
+**Garage Brute Force Improvements:**
+- **Enhanced 8-bit garage door brute force reliability**: Each code now transmits 3 times (standard requirement for garage receivers)
+- Increased inter-repetition delay to 10ms (allows receiver to process each transmission)
+- Increased inter-code delay to 20ms (up from 2ms) for better receiver compatibility
+- More reliable triggering of fixed-code garage door systems
+
+**Technical Details:**
+- Each of the 256 codes (8-bit) is now sent 3 consecutive times before moving to the next code
+- Total transmission time increased but success rate significantly improved
+- Matches timing requirements of common DIP-switch garage door receivers
 
 ### v0.2.9 (December 2025)
 **TV-B-Gone Implementation:**
