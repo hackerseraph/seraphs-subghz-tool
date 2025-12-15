@@ -190,7 +190,35 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 
 ## Changelog
 
+### v0.3.2 (December 2025)
+**New Features:**
+- **Games Menu**: Added classic arcade games for entertainment
+  - **Dino Jump**: Chrome-style dinosaur runner with jumping mechanics
+  - **Arkanoid**: Brick-breaking paddle game with accelerometer tilt controls
+  - **Space Invaders**: Classic space shooter with tilt movement and shooting
+- **IMU Support**: Properly initialized MPU6886 accelerometer for tilt-based game controls
+- **Improved UI**: Compacted all menu headers to single-line format to avoid case obscuring bottom pixels
+
+**Game Features:**
+- Dino Jump: T-Rex sprite design, progressive difficulty, score tracking
+- Arkanoid: 32 destructible bricks, paddle physics, wall bouncing
+- Space Invaders: 33 aliens in formation, player shooting, collision detection
+- All games: Smooth 30-50 FPS, responsive controls, proper exit back to menu
+
+**Technical:**
+- Total games code: ~4KB (from 501KB to 502KB flash usage)
+- Added M5.Imu.Init() to startup sequence
+- Accelerometer tilt controls use Y-axis for left/right movement
+- Button A works for jumping and shooting actions
+
 ### v0.3.1 (December 2025)
+**Enhancements:**
+- **Enhanced garage door brute force**: Now transmits each code 3 times with proper spacing
+  - 10ms delay between repetitions
+  - 20ms delay between different codes
+  - Improved reliability for garage door systems that require multiple code repetitions
+
+### v0.2.9 (December 2025)
 **Garage Door Brute Force Enhancement:**
 - **Improved reliability for 8-bit garage door codes**: Each code now repeats 3 times for better receiver detection
 - Enhanced timing: 10ms between repetitions, 20ms between codes
@@ -254,27 +282,6 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - Static screenValid variables properly invalidate when leaving modes
 - Frequency changes update text without clearing dynamic content
 - Clean mode transitions with no UI remnants
-
-### v0.3.2 (December 2025)
-**New Features:**
-- **Games Menu**: Added classic arcade games for entertainment
-  - **Dino Jump**: Chrome-style dinosaur runner with jumping mechanics
-  - **Arkanoid**: Brick-breaking paddle game with accelerometer tilt controls
-  - **Space Invaders**: Classic space shooter with tilt movement and shooting
-- **IMU Support**: Properly initialized MPU6886 accelerometer for tilt-based game controls
-- **Improved UI**: Compacted all menu headers to single-line format to avoid case obscuring bottom pixels
-
-**Game Features:**
-- Dino Jump: T-Rex sprite design, progressive difficulty, score tracking
-- Arkanoid: 32 destructible bricks, paddle physics, wall bouncing
-- Space Invaders: 33 aliens in formation, player shooting, collision detection
-- All games: Smooth 30-50 FPS, responsive controls, proper exit back to menu
-
-**Technical:**
-- Total games code: ~4KB (from 501KB to 502KB flash usage)
-- Added M5.Imu.Init() to startup sequence
-- Accelerometer tilt controls use Y-axis for left/right movement
-- Button A works for jumping and shooting actions
 
 ### v0.2.1 (December 2025)
 **Bug Fixes:**
