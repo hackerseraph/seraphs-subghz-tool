@@ -1,6 +1,6 @@
 # M5StickC Plus SubGHz Tool
 
-**Version 0.3.2**
+**Version 0.4.0**
 
 A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, focused interface for scanning, analyzing, listening, recording, and replaying SubGHz signals. Now includes classic arcade games!
 
@@ -17,6 +17,14 @@ A dedicated SubGHz tool for the M5StickC Plus with CC1101 radio module. Simple, 
 - **Dino Jump**: Chrome-style dinosaur jumping game (Button A to jump)
 - **Arkanoid**: Brick-breaking paddle game (Tilt to move paddle)
 - **Space Invaders**: Classic space shooter (Tilt to move, Button A to shoot)
+
+### WiFi Remote Control
+- **WiFi Access Point**: Create a WiFi AP named "roku-hd" for wireless control
+- **Web Interface**: Modern Matrix-themed hacker interface at 192.168.4.1
+- **Remote Operations**: Control Listen, Record, and Replay functions from any device
+- **Real-time Status**: View current mode, connected clients, and frequency
+- **Frequency Selection**: Choose from 315, 433.92, 868, or 915 MHz
+- **Zero Configuration**: No password required for quick access
 
 ## Hardware Requirements
 
@@ -62,6 +70,11 @@ For M5Stack StickC Plus NRF24/CC1101 2-in-1 Module (as documented in [Bruce firm
 - **Button A**: Action (Record in Listen mode, Transmit in Replay mode)
 - **Button B**: Back to main menu
 - **Power Button**: Cycle through frequencies (315, 433.92, 868, 915 MHz)
+
+### In WiFi AP Mode
+- **Web Interface**: Connect to "roku-hd" WiFi network and browse to http://192.168.4.1
+- **Remote Control**: Use web interface to trigger Listen, Record, Replay, and Stop operations
+- **Button B**: Stop WiFi AP and return to main menu
 
 ## Hacks Menu
 
@@ -189,6 +202,34 @@ Signals are recorded as timing arrays capturing the duration of HIGH and LOW sta
 - Try moving closer to signal source
 
 ## Changelog
+
+### v0.4.0 (December 2025)
+**Major Feature: WiFi Remote Control**
+- **WiFi Access Point Mode**: New menu option creates a WiFi AP named "roku-hd"
+  - Open network (no password) for quick access
+  - IP address: 192.168.4.1
+  - Displays connection status, IP, and client count on M5Stick screen
+- **Web Interface**: Full-featured Matrix-themed hacker interface
+  - Modern responsive design with green-on-black color scheme
+  - Courier New monospace font for terminal aesthetic
+  - Real-time status updates every 2 seconds
+- **Remote Operations**: Control all CC1101 functions wirelessly
+  - Listen, Record, Replay, and Stop buttons
+  - Frequency selector (315, 433.92, 868, 915 MHz)
+  - Visual feedback for all actions
+  - Error handling with user-friendly messages
+- **Technical Implementation**: 
+  - ESP32 WiFi AP mode with WebServer library
+  - Clean HTML/CSS/JavaScript interface served from device
+  - RESTful API endpoints for control (/listen, /record, /replay, /stop, /status)
+  - Efficient memory usage with single-page application design
+
+**User Benefits:**
+- Control SubGHz operations from phone/tablet/laptop
+- No need to interact with small M5Stick buttons for basic operations
+- Perfect for remote testing and demonstrations
+- Easy frequency switching without navigating menus
+- Multiple people can monitor status simultaneously
 
 ### v0.3.2 (December 2025)
 **New Features:**

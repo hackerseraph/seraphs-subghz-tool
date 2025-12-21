@@ -23,11 +23,13 @@
 #include "cc1101_interface.h"
 #include "menu_system.h"
 #include "subghz_operations.h"
+#include "wifi_ap.h"
 
 // Global objects
 CC1101Interface cc1101;
 MenuSystem menu;
 SubGhzOperations operations(&cc1101, &menu);
+WiFiAP wifiAP(&operations, &menu);
 
 // Include orca image data
 #include "orca_m5.h"
@@ -111,6 +113,9 @@ void setup() {
     // Connect operations to menu for hacks
     menu.setOperations(&operations);
     
+    // Connect WiFi AP to menu
+    menu.setWiFiAP(&wifiAP);
+    
     // Seed random for dummy data
     randomSeed(analogRead(0));
     
@@ -143,6 +148,9 @@ void loop() {
     
     // Update operations based on current mode (AFTER menu draw so operations draw on top)
     operations.update();
+    
+    // Update WiFi AP (handles web server)
+    wifiAP.update();
     
     delay(20);
 }

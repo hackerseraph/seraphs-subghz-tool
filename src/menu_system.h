@@ -5,8 +5,9 @@
 #include <M5StickCPlus.h>
 #include "cc1101_interface.h"
 
-// Forward declaration
+// Forward declarations
 class SubGhzOperations;
+class WiFiAP;
 
 enum MenuState {
     MENU_MAIN,
@@ -17,6 +18,7 @@ enum MenuState {
     MENU_REPLAY,
     MENU_HACKS,
     MENU_GAMES,
+    MENU_WIFI_AP,
     MENU_SETTINGS,
     MENU_ABOUT
 };
@@ -37,6 +39,7 @@ public:
     void update();
     void draw();
     void setOperations(SubGhzOperations* ops);
+    void setWiFiAP(WiFiAP* ap);
     
     MenuState getState();
     OperationMode getMode();
@@ -58,6 +61,7 @@ private:
     int hacksSelection;
     int gamesSelection;
     SubGhzOperations* operations;
+    WiFiAP* wifiAP;
     
     // Frequency selection
     int freqIndex;
@@ -78,6 +82,7 @@ private:
     void drawReplayScreen();
     void drawHacksScreen();
     void drawGamesScreen();
+    void drawWiFiAPScreen();
     void drawSettingsScreen();
     void drawAboutScreen();
     

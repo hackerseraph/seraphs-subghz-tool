@@ -1,6 +1,7 @@
 #include "menu_system.h"
 #include "subghz_operations.h"
 #include "games.h"
+#include "wifi_ap.h"
 
 // Global games instance
 Games games;
@@ -9,12 +10,13 @@ MenuSystem::MenuSystem() {
     currentState = MENU_MAIN;
     currentMode = MODE_IDLE;
     menuSelection = 0;
-    maxMenuItems = 8;  // Scan, Spectrum, Listen, Record, Replay, Hacks, Games, Settings
+    maxMenuItems = 9;  // Scan, Spectrum, Listen, Record, Replay, Hacks, Games, WiFi AP, Settings
     moduleType = MODULE_2IN1;  // Default to 2-in-1 module
     settingsSelection = 0;
     hacksSelection = 0;
     gamesSelection = 0;
     operations = nullptr;
+    wifiAP = nullptr;
     freqIndex = 1; // Default to 433MHz
     
     frequencies[0] = 315.00;
@@ -68,6 +70,9 @@ void MenuSystem::draw() {
         case MENU_GAMES:
             drawGamesScreen();
             break;
+        case MENU_WIFI_AP:
+            drawWiFiAPScreen();
+            break;
         case MENU_SETTINGS:
             drawSettingsScreen();
             break;
@@ -111,6 +116,10 @@ void MenuSystem::clearRedrawFlag() {
 
 void MenuSystem::setOperations(SubGhzOperations* ops) {
     operations = ops;
+}
+
+void MenuSystem::setWiFiAP(WiFiAP* ap) {
+    wifiAP = ap;
 }
 
 void MenuSystem::handleButtons() {
@@ -163,6 +172,13 @@ void MenuSystem::buttonA() {
                 gamesSelection = 0;
                 break;
             case 7:
+                currentState = MENU_WIFI_AP;
+                currentMode = MODE_IDLE;
+                if (wifiAP != nullptr && !wifiAP->isActive()) {
+                    wifiAP->begin();
+                }
+                break;
+            case 8:
                 currentState = MENU_SETTINGS;
                 currentMode = MODE_IDLE;
                 settingsSelection = 0;
@@ -227,6 +243,13 @@ void MenuSystem::buttonB() {
         // Go back to main menu
         currentState = MENU_MAIN;
         currentMode = MODE_IDLE;
+    } else if (currentState == MENU_WIFI_AP) {
+        // Stop WiFi AP and go back to main menu
+        if (wifiAP != nullptr && wifiAP->isActive()) {
+            wifiAP->stop();
+        }
+        currentState = MENU_MAIN;
+        currentMode = MODE_IDLE;
     } else if (currentState == MENU_SETTINGS) {
         currentState = MENU_MAIN;
         currentMode = MODE_IDLE;
@@ -269,7 +292,7 @@ void MenuSystem::drawMainMenu() {
     M5.Lcd.println("Seraph's SubGHz Tool");
     
     int y = 20;
-    const char* menuItems[] = {"Scan", "Spectrum", "Listen", "Record", "Replay", "Hacks", "Games", "Settings"};
+    const char* menuItems[] = {"Scan", "Spectrum", "Listen", "Record", "Replay", "Hacks", "Games", "WiFi AP", "Settings"};
     
     for (int i = 0; i < maxMenuItems; i++) {
         M5.Lcd.setCursor(10, y);
@@ -602,6 +625,52 @@ void MenuSystem::drawSettingsScreen() {
     M5.Lcd.println("A: Select  B: Back");
 }
 
+void MenuSystem::drawWiFiAPScreen() {
+    M5.Lcd.fillScreen(BLACK);
+    M5.Lcd.setTextSize(1);
+    M5.Lcd.setCursor(10, 5);
+    M5.Lcd.setTextColor(CYAN, BLACK);
+    M5.Lcd.println("WiFi ACCESS POINT");
+    
+    if (wifiAP != nullptr && wifiAP->isActive()) {
+        M5.Lcd.setCursor(10, 25);
+        M5.Lcd.setTextColor(GREEN, BLACK);
+        M5.Lcd.println("Status: ACTIVE");
+        
+        M5.Lcd.setCursor(10, 40);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.println("SSID: roku-hd");
+        
+        M5.Lcd.setCursor(10, 55);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.print("IP: ");
+        M5.Lcd.println(wifiAP->getIPAddress());
+        
+        M5.Lcd.setCursor(10, 70);
+        M5.Lcd.setTextColor(YELLOW, BLACK);
+        M5.Lcd.print("Clients: ");
+        M5.Lcd.println(wifiAP->getClientCount());
+        
+        M5.Lcd.setCursor(10, 90);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.println("Connect to 'roku-hd'");
+        M5.Lcd.setCursor(10, 102);
+        M5.Lcd.println("Browse: 192.168.4.1");
+    } else {
+        M5.Lcd.setCursor(10, 25);
+        M5.Lcd.setTextColor(RED, BLACK);
+        M5.Lcd.println("Status: INACTIVE");
+        
+        M5.Lcd.setCursor(10, 45);
+        M5.Lcd.setTextColor(WHITE, BLACK);
+        M5.Lcd.println("WiFi AP not started");
+    }
+    
+    M5.Lcd.setCursor(10, 120);
+    M5.Lcd.setTextColor(YELLOW, BLACK);
+    M5.Lcd.println("B: Back");
+}
+
 void MenuSystem::drawAboutScreen() {
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setTextSize(1);
@@ -615,7 +684,7 @@ void MenuSystem::drawAboutScreen() {
     
     M5.Lcd.setCursor(10, 40);
     M5.Lcd.setTextColor(YELLOW, BLACK);
-    M5.Lcd.println("Version 0.3.2");
+    M5.Lcd.println("Version 0.4.0");
     
     M5.Lcd.setCursor(10, 55);
     M5.Lcd.setTextColor(WHITE, BLACK);
